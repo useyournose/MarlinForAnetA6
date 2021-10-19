@@ -1,14 +1,15 @@
 $marlinfolder = Join-path $PsscriptRoot '\Marlin\'
 $configfolder = Join-path $PsscriptRoot '\Configurations\'
 
+
+#region get repositories
 if (!(Test-path $marlinfolder)) {
     git submodule add https://github.com/MarlinFirmware/Marlin.git
 }
 if (Test-path $marlinfolder) {
     Set-Location $marlinfolder
-    git checkout 2.0.x
+    git checkout 2.0.x --force
     git pull
-    git reset --hard
     $latest = git describe --tags --abbrev=0
     git checkout $latest
 }
@@ -16,20 +17,24 @@ if (Test-path $marlinfolder) {
 if (!(Test-path $configfolder)) {
     git submodule add https://github.com/MarlinFirmware/Configurations.git
 }
-
 if (Test-path $configfolder) {
     Set-Location $configfolder
-    git checkout import-2.0.x
-    git reset --hard
+    git checkout import-2.0.x --force
     git pull
     git checkout $latest
 }
 
+Set-Location $PsscriptRoot
+git add *
+git commit -m "updated sources"
+
+#endregion
+
 Copy-Item -path (join-path $configfolder 'config' 'examples' 'Anet' 'A6' '*') -destination (Join-path $marlinfolder 'Marlin' )
 Set-Location $marlinfolder
 git add *
-git commit -m "copied config files"
 
+#region customize configuration
 ## update default envs
 ## update platformio.ini default_envs = sanguino1284p https://stackoverflow.com/questions/22802043/powershell-ini-editing
 $pfile = (join-path $marlinfolder 'platformio.ini')
@@ -58,6 +63,9 @@ $acdata = Get-Content $acfile | ForEach-Object {$_ -replace $acfind, $acreplace}
 if ($acdata | Select-String -pattern $acreplace) {Write-Output "success"} else {Write-Output "fail"}
 $acdata | Set-Content $acfile
 
+#endregion
+
+Set-Location $PsscriptRoot
 
 <#
 dann vscode öffnen
